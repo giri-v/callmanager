@@ -39,6 +39,45 @@ function sendEmailNotification(subject, body, attachmentPath) {
  * Publishes an MQTT notification (placeholder).
  * @param {string} topic - The specific topic to publish to (will be prefixed).
  * @param {object} message - The message object to publish (will be JSON stringified).
+ *
+ * === MQTT Message Structures ===
+ *
+ * **Ringing Event:**
+ * Published when an incoming call is first detected (ringing).
+ * Topic: `[config.notifications.mqtt.topicPrefix]/ringing`
+ * Payload Example:
+ * ```json
+ * {
+ *   "event": "ringing",
+ *   "timestamp": "2023-10-27T10:30:00Z",
+ *   "callerIdAvailable": true,
+ *   "callerId": {
+ *     "number": "15551234567",
+ *     "name": "John Doe"
+ *   }
+ * }
+ * ```
+ * If callerId is not available at the moment of ringing:
+ * ```json
+ * {
+ *   "event": "ringing",
+ *   "timestamp": "2023-10-27T10:30:00Z",
+ *   "callerIdAvailable": false
+ * }
+ * ```
+ *
+ * **Caller ID Update Event:**
+ * Published when caller ID information becomes available or is updated.
+ * Topic: `[config.notifications.mqtt.topicPrefix]/caller_id`
+ * Payload Example:
+ * ```json
+ * {
+ *   "event": "caller_id_update",
+ *   "timestamp": "2023-10-27T10:30:01Z",
+ *   "number": "15551234567",
+ *   "name": "John Doe"
+ * }
+ * ```
  */
 function publishMqttNotification(topic, message) {
   if (!config || !config.notifications || !config.notifications.mqtt || !config.notifications.mqtt.enabled) {
@@ -66,18 +105,85 @@ function setGpioStatus(statusType) {
  */
 function cleanupGpio() {
   if (!config || !config.notifications || !config.notifications.gpio || !config.notifications.gpio.enabled) {
-    console.log('GPIO_PLACEHOLDER: GPIO is disabled in config, no cleanup needed.');
+    // console.log('GPIO_PLACEHOLDER: GPIO is disabled in config, no cleanup needed.'); // Quieter when disabled
     return;
   }
   console.log("GPIO_PLACEHOLDER: Cleaning up GPIO pins. (Would release 'onoff' pins)");
 }
 
+
+/**
+ * @description Publishes a "ringing" event MQTT notification.
+ * Constructs the payload and calls `publishMqttNotification`.
+ * @param {object} [callerIdInfo] - Optional caller ID information.
+ * @param {string} [callerIdInfo.number] - The caller's phone number.
+ * @param {string} [callerIdInfo.name] - The caller's name.
+ */
+function publishRingingEvent(callerIdInfo) {
+  if (!config || !config.notifications || !config.notifications.mqtt || !config.notifications.mqtt.enabled) {
+    return; // MQTT notifications are disabled
+  }
+
+  const timestamp = new Date().toISOString();
+  let payload;
+
+  if (callerIdInfo && callerIdInfo.number) {
+    payload = {
+      event: "ringing",
+      timestamp: timestamp,
+      callerIdAvailable: true,
+      callerId: {
+        number: callerIdInfo.number,
+        name: callerIdInfo.name || null,
+      }
+    };
+  } else {
+    payload = {
+      event: "ringing",
+      timestamp: timestamp,
+      callerIdAvailable: false
+    };
+  }
+  publishMqttNotification('ringing', payload);
+}
+
+/**
+ * @description Publishes a "caller_id_update" event MQTT notification.
+ * Constructs the payload and calls `publishMqttNotification`.
+ * @param {object} callerIdInfo - Required caller ID information.
+ * @param {string} callerIdInfo.number - The caller's phone number.
+ * @param {string} callerIdInfo.name - The caller's name.
+ */
+function publishCallerIdUpdateEvent(callerIdInfo) {
+  if (!config || !config.notifications || !config.notifications.mqtt || !config.notifications.mqtt.enabled) {
+    return; // MQTT notifications are disabled
+  }
+
+  if (!callerIdInfo || !callerIdInfo.number || typeof callerIdInfo.name === 'undefined') {
+    console.error('NOTIFICATIONS_ERROR: Missing or invalid callerIdInfo for publishCallerIdUpdateEvent. Both number and name must be provided.');
+    return;
+  }
+
+  const timestamp = new Date().toISOString();
+  const payload = {
+    event: "caller_id_update",
+    timestamp: timestamp,
+    number: callerIdInfo.number,
+    name: callerIdInfo.name,
+  };
+  publishMqttNotification('caller_id', payload);
+}
+
+
 module.exports = {
   initializeGpio,
   sendEmailNotification,
-  publishMqttNotification,
+  publishMqttNotification, // Still expose for other potential MQTT messages
   setGpioStatus,
   cleanupGpio,
+  // New centralized functions
+  publishRingingEvent,
+  publishCallerIdUpdateEvent,
 };
 
 // For direct testing:
@@ -87,25 +193,21 @@ if (require.main === module) {
   } else {
     console.log("--- Direct Test of Notifications (config dependent) ---");
 
-    // Simulate enabling all for direct test
-    const originalEmailEnabled = config.notifications.email.enabled;
     const originalMqttEnabled = config.notifications.mqtt.enabled;
-    const originalGpioEnabled = config.notifications.gpio.enabled;
+    config.notifications.mqtt.enabled = true; // Ensure MQTT is enabled for this direct test
 
-    config.notifications.email.enabled = true;
-    config.notifications.mqtt.enabled = true;
-    config.notifications.gpio.enabled = true;
+    console.log("\nTesting publishRingingEvent (with CID):");
+    publishRingingEvent({ number: "15551234567", name: "Test User" });
+    console.log("\nTesting publishRingingEvent (without CID):");
+    publishRingingEvent();
 
-    initializeGpio();
-    sendEmailNotification('Test Subject', 'Test Body', '/path/to/test_attachment.wav');
-    publishMqttNotification('call/incoming', { number: '1234567890', name: 'Test Caller' });
-    setGpioStatus('RINGING');
-    cleanupGpio();
+    console.log("\nTesting publishCallerIdUpdateEvent (valid):");
+    publishCallerIdUpdateEvent({ number: "15559876543", name: "Another User" });
+    console.log("\nTesting publishCallerIdUpdateEvent (invalid - missing name):");
+    publishCallerIdUpdateEvent({ number: "15550000000" });
 
-    // Restore original config states
-    config.notifications.email.enabled = originalEmailEnabled;
-    config.notifications.mqtt.enabled = originalMqttEnabled;
-    config.notifications.gpio.enabled = originalGpioEnabled;
-    console.log("--- Direct Test Finished ---");
+
+    config.notifications.mqtt.enabled = originalMqttEnabled; // Restore
+    console.log("\n--- Direct Test Finished ---");
   }
 }

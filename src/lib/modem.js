@@ -5,6 +5,8 @@
  * @description This is placeholder behavior. It returns an empty array because 'serialport'
  *              module installation is currently problematic in this environment.
  */
+const { publishRingingEvent, publishCallerIdUpdateEvent } = require('../lib/notifications'); // Updated imports
+
 async function listSerialPorts() {
   console.warn('Warning: listSerialPorts() is using placeholder behavior due to serialport installation issues.');
   return Promise.resolve([]);
@@ -66,6 +68,29 @@ class ModemCommunicator {
     console.log('ModemCommunicator.initializeModem() called.');
     console.warn("Warning: initializeModem() requires 'serialport', which is not available.");
     // Placeholder: Simulate modem initialization
+  }
+
+  /**
+   * Simulates an incoming ring event and publishes an MQTT notification.
+   * @param {object} [callerIdInfo] - Optional caller ID information.
+   * @param {string} [callerIdInfo.number] - The caller's phone number.
+   * @param {string} [callerIdInfo.name] - The caller's name.
+   */
+  simulateRingEvent(callerIdInfo) {
+    console.log(`ModemCommunicator.simulateRingEvent() called. CallerIdInfo: ${callerIdInfo ? JSON.stringify(callerIdInfo) : 'Not available'}`);
+    publishRingingEvent(callerIdInfo); // Use centralized function
+  }
+
+  /**
+   * Simulates a caller ID update event and publishes an MQTT notification.
+   * @param {object} callerIdInfo - Caller ID information.
+   * @param {string} callerIdInfo.number - The caller's phone number.
+   * @param {string} callerIdInfo.name - The caller's name.
+   */
+  simulateCallerIdEvent(callerIdInfo) {
+    // Validation is now handled by publishCallerIdUpdateEvent
+    console.log(`ModemCommunicator.simulateCallerIdEvent() called. CallerIdInfo: ${JSON.stringify(callerIdInfo)}`);
+    publishCallerIdUpdateEvent(callerIdInfo); // Use centralized function
   }
 }
 
