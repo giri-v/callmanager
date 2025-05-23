@@ -1,0 +1,29 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/giri-v/callmanager.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/giri-v/callmanager/issues"
+  },
+  "homepage": "https://github.com/giri-v/callmanager#readme",
+  "dependencies": {
+    "express": "^5.1.0",
+    "ini": "^5.0.0",
+    "is-odd": "^3.0.1",
+    "mqtt": "^5.13.0",
+    "nodemailer": "^7.0.3",
+    "onoff": "^6.0.3",
+    "serialport": "^10.5.0"
+  }
+}

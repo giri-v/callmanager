@@ -1,0 +1,40 @@
+{
+  "modem": {
+    "port": "/dev/ttyACM0",
+    "baudRate": 9600,
+    "initCommands": ["ATZ", "ATE0V1Q0", "AT+VCID=1"]
+  },
+  "callScreening": {
+    "onlineLookupServiceUrl": "",
+    "defaultActionUnknownCaller": "VOICEMAIL"
+  },
+  "voicemail": {
+    "maxDurationSeconds": 180,
+    "greetingMessagePath": "data/audio/greeting.wav"
+  },
+  "notifications": {
+    "email": {
+      "enabled": false,
+      "smtpHost": "smtp.example.com",
+      "smtpPort": 587,
+      "smtpUser": "user@example.com",
+      "smtpPass": "password",
+      "recipientEmail": "recipient@example.com",
+      "sendAttachment": true
+    },
+    "mqtt": {
+      "enabled": false,
+      "brokerUrl": "mqtt://localhost:1883",
+      "topicPrefix": "callattendant"
+    },
+    "gpio": {
+      "enabled": false,
+      "statusPin": 17,
+      "blockedPin": 27,
+      "permittedPin": 22
+    }
+  },
+  "webServer": {
+    "port": 5000
+  }
+}

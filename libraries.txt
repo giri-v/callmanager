@@ -1,0 +1,9 @@
+express
+serialport
+fs (built-in)
+ini (for .cfg files)
+nodemailer
+mqtt
+onoff (for Raspberry Pi)
+winston
+jest
