@@ -93,6 +93,14 @@ function startServer() {
           }
         });
         return;
+      } else if (url === '/api/status' && method === 'GET') {
+        api.getApiStatus({ params: {}, body: {} }, {
+          json: (jsonData) => {
+            res.writeHead(200);
+            res.end(JSON.stringify(jsonData));
+          }
+        });
+        return;
       }
       // Add more API routes here (e.g., POST for adding numbers, DELETE)
 

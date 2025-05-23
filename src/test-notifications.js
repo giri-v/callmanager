@@ -53,25 +53,43 @@ async function runTests() {
 
   // --- Test Email Notifications ---
   console.log('\n--- Testing Email Notifications ---');
+  // Test 1: Email enabled, with attachment, with smtpUser
   config.notifications.email.enabled = true;
+  config.notifications.email.smtpUser = 'testuser@example.com'; // Ensure smtpUser for this test
+  config.notifications.email.smtpHost = 'smtp.test.host'; // For clarity in logs
+  config.notifications.email.smtpPort = 587; // For clarity in logs
+
   let logs = captureConsoleLog(() => {
     notifications.sendEmailNotification('Test Subject 1', 'Test Body 1', 'att1.wav');
   });
-  assert.ok(logs.some(log => log.includes("EMAIL_PLACEHOLDER: Sending email with subject 'Test Subject 1', body 'Test Body 1', and attachment 'att1.wav'")), 'Test 1.1 FAILED: Email log not found when enabled.');
-  console.log('Test 1.1 PASSED: Email sent when enabled (placeholder).');
+  assert.ok(logs.some(log => log.includes(`EMAIL_PLACEHOLDER: Attempting to connect to SMTP server ${config.notifications.email.smtpHost}:${config.notifications.email.smtpPort}...`)), 'Test 1.1.1 FAILED: Missing SMTP connect attempt log.');
+  assert.ok(logs.some(log => log.includes("EMAIL_PLACEHOLDER: Successfully connected to SMTP server (simulated).")), 'Test 1.1.2 FAILED: Missing SMTP connect success log.');
+  assert.ok(logs.some(log => log.includes(`EMAIL_PLACEHOLDER: Authenticating as user ${config.notifications.email.smtpUser} (simulated)...`)), 'Test 1.1.3 FAILED: Missing SMTP auth log when smtpUser is set.');
+  assert.ok(logs.some(log => log.includes("EMAIL_PLACEHOLDER: Sending email with subject 'Test Subject 1', body 'Test Body 1', and attachment 'att1.wav'")), 'Test 1.1.4 FAILED: Email sending log not found.');
+  assert.ok(logs.some(log => log.includes("EMAIL_PLACEHOLDER: Email sent successfully (simulated).")), 'Test 1.1.5 FAILED: Missing email sent success log.');
+  assert.ok(logs.some(log => log.includes("EMAIL_PLACEHOLDER: Disconnecting from SMTP server (simulated).")), 'Test 1.1.6 FAILED: Missing SMTP disconnect log.');
+  console.log('Test 1.1 PASSED: Email sent with full lifecycle logs (with attachment, with auth).');
 
+  // Test 2: Email enabled, no attachment, no smtpUser
+  config.notifications.email.smtpUser = ''; // Clear smtpUser for this test
   logs = captureConsoleLog(() => {
     notifications.sendEmailNotification('Test Subject 2', 'Test Body 2');
   });
-  assert.ok(logs.some(log => log.includes("EMAIL_PLACEHOLDER: Sending email with subject 'Test Subject 2', body 'Test Body 2'") && !log.includes("and attachment")), 'Test 1.2 FAILED: Email log (no attachment) not found when enabled.');
-  console.log('Test 1.2 PASSED: Email sent (no attachment) when enabled (placeholder).');
+  assert.ok(logs.some(log => log.includes(`EMAIL_PLACEHOLDER: Attempting to connect to SMTP server ${config.notifications.email.smtpHost}:${config.notifications.email.smtpPort}...`)), 'Test 1.2.1 FAILED: Missing SMTP connect attempt log (no auth).');
+  assert.ok(logs.some(log => log.includes("EMAIL_PLACEHOLDER: Successfully connected to SMTP server (simulated).")), 'Test 1.2.2 FAILED: Missing SMTP connect success log (no auth).');
+  assert.ok(!logs.some(log => log.includes(`EMAIL_PLACEHOLDER: Authenticating as user`)), 'Test 1.2.3 FAILED: SMTP auth log found when smtpUser is not set.');
+  assert.ok(logs.some(log => log.includes("EMAIL_PLACEHOLDER: Sending email with subject 'Test Subject 2', body 'Test Body 2'") && !log.includes("and attachment")), 'Test 1.2.4 FAILED: Email sending log (no attachment) not found.');
+  assert.ok(logs.some(log => log.includes("EMAIL_PLACEHOLDER: Email sent successfully (simulated).")), 'Test 1.2.5 FAILED: Missing email sent success log (no auth).');
+  assert.ok(logs.some(log => log.includes("EMAIL_PLACEHOLDER: Disconnecting from SMTP server (simulated).")), 'Test 1.2.6 FAILED: Missing SMTP disconnect log (no auth).');
+  console.log('Test 1.2 PASSED: Email sent with full lifecycle logs (no attachment, no auth).');
 
+  // Test 3: Email disabled
   config.notifications.email.enabled = false;
   logs = captureConsoleLog(() => {
     notifications.sendEmailNotification('Disabled Test Subject', 'Disabled Test Body');
   });
-  assert.strictEqual(logs.length, 0, 'Test 2.1 FAILED: Email function should not log when disabled.');
-  console.log('Test 2.1 PASSED: Email function does nothing when disabled.');
+  assert.strictEqual(logs.length, 0, 'Test 2.1 FAILED: Email function should not log when disabled.'); // Renumbered from original Test 2.1
+  console.log('Test 2.1 PASSED: Email function does nothing when disabled.'); // Renumbered
 
   // --- Test MQTT Notifications (General publishMqttNotification) ---
   console.log('\n--- Testing MQTT Notifications (General) ---');
@@ -81,8 +99,11 @@ async function runTests() {
   logs = captureConsoleLog(() => {
     notifications.publishMqttNotification('custom_topic', testMessage);
   });
-  assert.ok(logs.some(log => log.includes(`MQTT_PLACEHOLDER: Publishing to topic 'callattendant/generaltest/custom_topic' message: ${JSON.stringify(testMessage)}`)), 'Test 3.1 FAILED: General MQTT log not found when enabled.');
-  console.log('Test 3.1 PASSED: General MQTT message published when enabled (placeholder).');
+  assert.ok(logs.some(log => log.includes(`MQTT_PLACEHOLDER: Attempting to connect to broker at ${config.notifications.mqtt.brokerUrl}...`)), 'Test 3.1 FAILED: Missing MQTT connect attempt log.');
+  assert.ok(logs.some(log => log.includes("MQTT_PLACEHOLDER: Successfully connected to MQTT broker (simulated).")), 'Test 3.2 FAILED: Missing MQTT connect success log.');
+  assert.ok(logs.some(log => log.includes(`MQTT_PLACEHOLDER: Publishing to topic 'callattendant/generaltest/custom_topic' message: ${JSON.stringify(testMessage)}`)), 'Test 3.3 FAILED: General MQTT publish log not found when enabled.');
+  assert.ok(logs.some(log => log.includes("MQTT_PLACEHOLDER: Disconnecting from MQTT broker (simulated).")), 'Test 3.4 FAILED: Missing MQTT disconnect log.');
+  console.log('Test 3 PASSED: General MQTT message published with full lifecycle logs (placeholder).');
 
   config.notifications.mqtt.enabled = false;
   logs = captureConsoleLog(() => {
@@ -144,15 +165,21 @@ async function runTests() {
     notifications.publishRingingEvent({ number: '5551112222', name: 'Ring Tester' });
   });
   const expectedRingPartsWithCID = [`"event":"ringing"`, `"callerIdAvailable":true`, `"callerId":{"number":"5551112222","name":"Ring Tester"}`];
-  assert.ok(ringLogs.some(log => log.includes("MQTT_PLACEHOLDER: Publishing to topic 'callattendant/testevents/ringing'") && checkLogForPayload(log, expectedRingPartsWithCID)), 'Test 7.1 FAILED: publishRingingEvent with CID did not log expected MQTT message.');
-  console.log('Test 7.1 PASSED: publishRingingEvent with CID.');
+  assert.ok(ringLogs.some(log => log.includes(`MQTT_PLACEHOLDER: Attempting to connect to broker at ${config.notifications.mqtt.brokerUrl}...`)), 'Test 7.1.1 FAILED: publishRingingEvent missing connect attempt log.');
+  assert.ok(ringLogs.some(log => log.includes("MQTT_PLACEHOLDER: Successfully connected to MQTT broker (simulated).")), 'Test 7.1.2 FAILED: publishRingingEvent missing connect success log.');
+  assert.ok(ringLogs.some(log => log.includes("MQTT_PLACEHOLDER: Publishing to topic 'callattendant/testevents/ringing'") && checkLogForPayload(log, expectedRingPartsWithCID)), 'Test 7.1.3 FAILED: publishRingingEvent with CID did not log expected MQTT publish message.');
+  assert.ok(ringLogs.some(log => log.includes("MQTT_PLACEHOLDER: Disconnecting from MQTT broker (simulated).")), 'Test 7.1.4 FAILED: publishRingingEvent missing disconnect log.');
+  console.log('Test 7.1 PASSED: publishRingingEvent with CID and full lifecycle logs.');
 
   ringLogs = captureConsoleLog(() => {
     notifications.publishRingingEvent(); // No CID
   });
   const expectedRingPartsNoCID = [`"event":"ringing"`, `"callerIdAvailable":false`];
-  assert.ok(ringLogs.some(log => log.includes("MQTT_PLACEHOLDER: Publishing to topic 'callattendant/testevents/ringing'") && checkLogForPayload(log, expectedRingPartsNoCID) && !log.includes('"callerId":')), 'Test 7.2 FAILED: publishRingingEvent without CID did not log expected MQTT message.');
-  console.log('Test 7.2 PASSED: publishRingingEvent without CID.');
+  assert.ok(ringLogs.some(log => log.includes(`MQTT_PLACEHOLDER: Attempting to connect to broker at ${config.notifications.mqtt.brokerUrl}...`)), 'Test 7.2.1 FAILED: publishRingingEvent (no CID) missing connect attempt log.');
+  assert.ok(ringLogs.some(log => log.includes("MQTT_PLACEHOLDER: Successfully connected to MQTT broker (simulated).")), 'Test 7.2.2 FAILED: publishRingingEvent (no CID) missing connect success log.');
+  assert.ok(ringLogs.some(log => log.includes("MQTT_PLACEHOLDER: Publishing to topic 'callattendant/testevents/ringing'") && checkLogForPayload(log, expectedRingPartsNoCID) && !log.includes('"callerId":')), 'Test 7.2.3 FAILED: publishRingingEvent without CID did not log expected MQTT publish message.');
+  assert.ok(ringLogs.some(log => log.includes("MQTT_PLACEHOLDER: Disconnecting from MQTT broker (simulated).")), 'Test 7.2.4 FAILED: publishRingingEvent (no CID) missing disconnect log.');
+  console.log('Test 7.2 PASSED: publishRingingEvent without CID and full lifecycle logs.');
 
   // Test publishCallerIdUpdateEvent
   console.log('\nTesting publishCallerIdUpdateEvent...');
@@ -160,8 +187,11 @@ async function runTests() {
     notifications.publishCallerIdUpdateEvent({ number: '5553334444', name: 'CID Updater' });
   });
   const expectedCIDParts = [`"event":"caller_id_update"`, `"number":"5553334444"`, `"name":"CID Updater"`];
-  assert.ok(cidLogs.some(log => log.includes("MQTT_PLACEHOLDER: Publishing to topic 'callattendant/testevents/caller_id'") && checkLogForPayload(log, expectedCIDParts)), 'Test 7.3 FAILED: publishCallerIdUpdateEvent did not log expected MQTT message.');
-  console.log('Test 7.3 PASSED: publishCallerIdUpdateEvent with valid data.');
+  assert.ok(cidLogs.some(log => log.includes(`MQTT_PLACEHOLDER: Attempting to connect to broker at ${config.notifications.mqtt.brokerUrl}...`)), 'Test 7.3.1 FAILED: publishCallerIdUpdateEvent missing connect attempt log.');
+  assert.ok(cidLogs.some(log => log.includes("MQTT_PLACEHOLDER: Successfully connected to MQTT broker (simulated).")), 'Test 7.3.2 FAILED: publishCallerIdUpdateEvent missing connect success log.');
+  assert.ok(cidLogs.some(log => log.includes("MQTT_PLACEHOLDER: Publishing to topic 'callattendant/testevents/caller_id'") && checkLogForPayload(log, expectedCIDParts)), 'Test 7.3.3 FAILED: publishCallerIdUpdateEvent did not log expected MQTT publish message.');
+  assert.ok(cidLogs.some(log => log.includes("MQTT_PLACEHOLDER: Disconnecting from MQTT broker (simulated).")), 'Test 7.3.4 FAILED: publishCallerIdUpdateEvent missing disconnect log.');
+  console.log('Test 7.3 PASSED: publishCallerIdUpdateEvent with valid data and full lifecycle logs.');
   
   // Test publishCallerIdUpdateEvent with invalid data (missing name)
   console.log('\nTesting publishCallerIdUpdateEvent (invalid data)...');
@@ -172,7 +202,8 @@ async function runTests() {
   });
   assert.ok(errorLogs.some(log => log.includes("NOTIFICATIONS_ERROR: Missing or invalid callerIdInfo for publishCallerIdUpdateEvent")), 'Test 7.4 FAILED: publishCallerIdUpdateEvent with invalid data did not log an error to console.error.');
   assert.ok(!cidLogs.some(log => log.includes("MQTT_PLACEHOLDER: Publishing to topic")), 'Test 7.5 FAILED: MQTT message sent despite invalid data in publishCallerIdUpdateEvent.');
-  console.log('Test 7.4 & 7.5 PASSED: publishCallerIdUpdateEvent with invalid data logged error and sent no MQTT message.');
+  assert.ok(!cidLogs.some(log => log.includes("Attempting to connect to broker")), 'Test 7.6 FAILED: MQTT connection lifecycle logs appeared for invalid data.');
+  console.log('Test 7.4, 7.5 & 7.6 PASSED: publishCallerIdUpdateEvent with invalid data logged error and sent no MQTT message or lifecycle logs.');
 
   // Restore MQTT config to its state before these specific tests
   config.notifications.mqtt.enabled = specificMqttTestOriginalEnabled;

@@ -1,0 +1,10 @@
+[
+  {
+    "pattern": "^Mom$",
+    "flags": ""
+  },
+  {
+    "pattern": "^Dad$",
+    "flags": ""
+  }
+]

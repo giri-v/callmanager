@@ -27,12 +27,22 @@ function sendEmailNotification(subject, body, attachmentPath) {
     return; // Email notifications are disabled
   }
 
+  console.log(`EMAIL_PLACEHOLDER: Attempting to connect to SMTP server ${config.notifications.email.smtpHost}:${config.notifications.email.smtpPort}...`);
+  console.log("EMAIL_PLACEHOLDER: Successfully connected to SMTP server (simulated).");
+
+  if (config.notifications.email.smtpUser) {
+    console.log(`EMAIL_PLACEHOLDER: Authenticating as user ${config.notifications.email.smtpUser} (simulated)...`);
+  }
+
   let logMessage = `EMAIL_PLACEHOLDER: Sending email with subject '${subject}', body '${body}'`;
   if (attachmentPath) {
     logMessage += `, and attachment '${attachmentPath}'`;
   }
   logMessage += `. (Would use nodemailer with host: ${config.notifications.email.smtpHost})`;
   console.log(logMessage);
+
+  console.log("EMAIL_PLACEHOLDER: Email sent successfully (simulated).");
+  console.log("EMAIL_PLACEHOLDER: Disconnecting from SMTP server (simulated).");
 }
 
 /**
@@ -84,8 +94,15 @@ function publishMqttNotification(topic, message) {
     return; // MQTT notifications are disabled
   }
 
+  // Simulate connection lifecycle
+  console.log(`MQTT_PLACEHOLDER: Attempting to connect to broker at ${config.notifications.mqtt.brokerUrl}...`);
+  console.log("MQTT_PLACEHOLDER: Successfully connected to MQTT broker (simulated).");
+
   const fullTopic = `${config.notifications.mqtt.topicPrefix}/${topic}`;
   console.log(`MQTT_PLACEHOLDER: Publishing to topic '${fullTopic}' message: ${JSON.stringify(message)}. (Would use MQTT client with broker: ${config.notifications.mqtt.brokerUrl})`);
+
+  // Simulate disconnection
+  console.log("MQTT_PLACEHOLDER: Disconnecting from MQTT broker (simulated).");
 }
 
 /**

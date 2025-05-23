@@ -1,0 +1,10 @@
+[
+  {
+    "pattern": "SCAM LIKELY",
+    "flags": "i"
+  },
+  {
+    "pattern": "^Unknown$",
+    "flags": "i"
+  }
+]
